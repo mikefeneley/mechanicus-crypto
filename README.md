@@ -10,3 +10,10 @@ A repository to hold practice implementations of cryptosystems. The purpose of t
 cryptography algorithims and any code in this repository should be considered unsafe. But feel free to break the  
 implementations here if you want to practic cryptanalysis. If you do, send me the results in email and I will make corrections 
 if possible and list you in the README.
+
+
+<br>
+<br>
+<b>Contact:</b>
+
+Michael Feneley: mfeneley(at)vt.edu

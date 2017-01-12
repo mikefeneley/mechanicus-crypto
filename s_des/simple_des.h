@@ -1,8 +1,9 @@
+#include "key_manager.h"
 
-class SimpleDES 
-{
-    public:
-        SimpleDES();
-        int encrypt();
-        int decrypt();
-};
+typedef struct _block {
+        bool bits[12];
+} block;
+
+
+int key_transform(block *block_array, it_key *it);
+

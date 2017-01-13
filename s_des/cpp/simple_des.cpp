@@ -4,6 +4,34 @@
 #include <vector>
 
 
+void s1_lookup(bool *s1_in, bool *s1_out)
+{
+    if(s1_in[0] && s1_in[1] && s1_in[2] && s1_in[3]) {
+        s1_out[0] = 1;
+        s1_out[1] = 0;
+        s1_out[2] = 1;   
+    }
+    else {
+        s1_out[0] = 1;
+        s1_out[1] = 1;
+        s1_out[2] = 0;
+    }
+}
+
+void s2_lookup(bool *s2_in, bool *s2_out)
+{
+    if(s2_in[0] && s2_in[1] && s2_in[2] && s2_in[3]) {
+        s2_out[0] = 1;
+        s2_out[1] = 0; 
+        s2_out[2] = 1;
+    }
+    else {
+        s2_out[0] = 1;
+        s2_out[1] = 1;
+        s2_out[2] = 0;
+    }
+}
+
 int print_blocks(block *block_array, int num_blocks)
 {
 
@@ -68,16 +96,12 @@ int encrypt(const std::string filename, full_key *full)
         it_key it;
         get_iteration_key(full, &it, i);
         key_transform(block_array, &it);    
-        
      }
-    
-
 }
 
 
 int key_transform(block *block_array, it_key *it)
 {
-
 
     bool R[6];
 
@@ -110,7 +134,23 @@ int key_transform(block *block_array, it_key *it)
         s1_input[i] = Holder[i];
         s2_input[i] = Holder[i + 4];
     }
-     
+    bool s1_output[3];
+    bool s2_output[3]; 
+
+    s1_lookup(s1_input, s1_output);
+    s2_lookup(s2_input, s2_output);
+
+    bool Hold[6];
+
+    for(int i = 0; i < 3; i++)
+    {
+        Hold[i] = s1_output[i];
+        Hold[i+3] = s2_output[i];
+    }
+
+    
+
+
     return 0;
 }
 

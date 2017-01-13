@@ -1,6 +1,5 @@
 #include "key_manager.h"
 
-
 /*
  * Returns the users private key for encryption/decryption.
  * If a key does not already exist, a new one is created and 

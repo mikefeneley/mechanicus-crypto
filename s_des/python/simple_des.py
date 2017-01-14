@@ -3,26 +3,21 @@ from ctypes import c_bool
 from ctypes import c_char
 from ctypes import c_int
 from copy import copy
+
 class SimpleDES:
 
     def __init__(self):
         self.block_template = c_bool * 12
-    
-    def encrypt_file(self, filename="input.txt", output="output.txt"):
+        self.rounds = 5 
+    def encrypt_file(self, inp="unencrypted.txt", output="encrypted.txt"):
+        block_holder = self.build_block_list(inp)
+        encrypted_block = self.encrypt_block_list(block_holder, self.rounds)
+        self.write_block_list(encrypted_block, output)
         
-        block_holder = self.build_block_list(filename)
-
-        self.write_block(block_holder, 'before') 
-        
-        encrypted = self.encrypt_block_list(block_holder)
-        self.write_block(encrypted, "Encrypted")
-        
-        decrypt = self.decrypt_block_list(encrypted)
-        
-        self.write_block(decrypt, "Decrypted")
-    
-    def decrypt_file(self, filename="encrypt.txt"):
-        pass
+    def decrypt_file(self, inp="encrypted.txt", output="unencrypted.txt"):
+        block_holder = self.build_block_list(inp)
+        decrypted_block_list = self.decrypt_block_list(block_holder, self.rounds)
+        self.write_block_list(decrypted_block_list, output)
 
     def build_block_list(self, filename):
         block = self.block_template()
@@ -47,7 +42,7 @@ class SimpleDES:
         return block_holder 
 
     def write_block_list(self, block_list, filename):
-
+        
         with open(filename, 'wb') as f:
             counter = 0
             char = 0
@@ -61,13 +56,13 @@ class SimpleDES:
                         f.write(chr(char))
                         char = 0
 
-    def encrypt_block_list(self, block_list, iterations=1):
+    def encrypt_block_list(self, block_list, iterations):
 
         for idx, block in enumerate(block_list):
             block_list[idx] = self.encrypt_block(block, rounds = iterations)
         return block_list
 
-    def encrypt_block(self, block, rounds=1):
+    def encrypt_block(self, block, rounds):
                 
         L = block[0:6]
         R = block[6:12]
@@ -112,13 +107,12 @@ class SimpleDES:
         print("FINAL", new_block)
         return new_block
 
-    def decrypt_block_list(self, block_list, iterations = 1):
-        print(type(block_list), "XXXXXXXXXXXXXXXXXXXXX")
+    def decrypt_block_list(self, block_list, iterations):
         for idx, block in enumerate(block_list):
             block_list[idx] = self.decrypt_block(block, rounds = iterations)
         return block_list
  
-    def decrypt_block(self, block, rounds = 1):
+    def decrypt_block(self, block, rounds):
         
         L = block[0:6]
         R = block[6:12]
@@ -228,6 +222,5 @@ class SimpleDES:
 
 if __name__ == '__main__':
     DES = SimpleDES()
-    
-    
-    DES.encrypt_file()
+    DES.decrypt_file()
+

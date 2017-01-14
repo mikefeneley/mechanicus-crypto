@@ -6,73 +6,164 @@ from copy import copy
 class SimpleDES:
 
     def __init__(self):
-        pass
+        self.block_template = c_bool * 12
     
-    def encrypt_file(self, filename='encrypt.txt'):
+    def encrypt_file(self, filename="input.txt", output="output.txt"):
         
+        block_holder = self.build_block_list(filename)
+
+        self.write_block(block_holder, 'before') 
+        
+        encrypted = self.encrypt_block_list(block_holder)
+        self.write_block(encrypted, "Encrypted")
+        
+        decrypt = self.decrypt_block_list(encrypted)
+        
+        self.write_block(decrypt, "Decrypted")
+    
+    def decrypt_file(self, filename="encrypt.txt"):
+        pass
+
+    def build_block_list(self, filename):
+        block = self.block_template()
         block_holder = []
-        block_template = c_bool * 12
-        block = block_template()
         with open(filename, 'rb') as f:
-            counter = 0 
+            counter = 0
             while 1:
                 byte_s = f.read(1)
                 if not byte_s:
                     break
                 else:
                     byte_s = c_int(ord(byte_s))
-                
-                    for i in range(0, 8):
-                        val = c_bool(((byte_s.value >> i) & 1)) 
-                        block[counter] = val
 
+                    for i in range(0, 8):
+                        val = c_bool(((byte_s.value >> i) & 1))
+                        block[counter] = val
                         counter += 1
                         if(counter == 12):
                             block_holder.append(block)
-                            block = block_template()
-                            counter = 0 
-        self.block_transform(block_holder)
+                            block = self.block_template()
+                            counter = 0
+        return block_holder 
 
-    def block_transform(self, block_holder, iterations=1):
-        
-        key_man = KeyManager()
-        key = key_man.get_binary_key()
-        for i in range(0, iterations):
+    def write_block_list(self, block_list, filename):
 
-            for block in block_holder:
-                print(block[:], "BLOCK")
+        with open(filename, 'wb') as f:
+            counter = 0
+            char = 0
+            for block in block_list:
+                for bit in block:
+                    
+                    char = char | (bit << counter)
+                    counter += 1
+                    if(counter == 8):
+                        counter = 0
+                        f.write(chr(char))
+                        char = 0
 
-                sub_key = key_man.get_binary_subkey(i)
-                print(key[:], "KEY")
-                print(sub_key[:], "SUB_KEY")
-                self.transform(block, sub_key)
-        
-    def transform(self, block, subkey):
+    def encrypt_block_list(self, block_list, iterations=1):
+
+        for idx, block in enumerate(block_list):
+            block_list[idx] = self.encrypt_block(block, rounds = iterations)
+        return block_list
+
+    def encrypt_block(self, block, rounds=1):
                 
         L = block[0:6]
         R = block[6:12]
-        print(L, R)
-        exp = self.expansion(R)
+        key_man = KeyManager()
+        key_man.get_binary_key()
         
-        exp_subkey_xor = []
-        for i in range(0, 8):
-            val = exp[i] ^ subkey[i]
-            exp_subkey_xor.append(val)
-        
-        s1_in = exp_subkey_xor[0:4]
-        s2_in = exp_subkey_xor[4:8]
-        
-        s1_out = self.s1_lookup(s1_in)
-        s2_out = self.s2_lookup(s2_in)
-        s_out = s1_out + s2_out
+        for i in range(0, rounds):
+            print("\n")
+            print("ENCRYPT ROUND:", i)
+            subkey = key_man.get_binary_subkey(i)
+            print("L: ", L, "R: ", R)
+            exp = self.expansion(R)
+            print("Exp: ", exp[:]) 
+            exp_subkey_xor = []
+            for i in range(0, 8):
+                val = exp[i] ^ subkey[i]
+                exp_subkey_xor.append(val)
+            print("Subkey", subkey[:] )
+            print("KEY XOR: ",exp_subkey_xor[:])
 
-        new_r = []
-        for i in range(0, 6):
-            val = s_out[i] ^ L[i]
-            new_r.append(val)    
-        new_l = R 
+            s1_in = exp_subkey_xor[0:4]
+            s2_in = exp_subkey_xor[4:8]
+            
+            s1_out = self.s1_lookup(s1_in)
+            s2_out = self.s2_lookup(s2_in)
+            s_out = s1_out + s2_out
+
+            print("S1_IN:", s1_in, "S1_OUT", s1_out)
+            print("S2_IN", s2_in, "S2_OUT", s2_out)
+            print("S_OUT", s_out)
+            new_r = []
+            for i in range(0, 6):
+                val = s_out[i] ^ L[i]
+                new_r.append(val)    
+            
+            new_l = R 
+            print(new_l, new_r) 
+            L = R
+            R = new_r
         
-        new_block = new_l + new_r
+        new_block = R + L
+        print("FINAL", new_block)
+        return new_block
+
+    def decrypt_block_list(self, block_list, iterations = 1):
+        print(type(block_list), "XXXXXXXXXXXXXXXXXXXXX")
+        for idx, block in enumerate(block_list):
+            block_list[idx] = self.decrypt_block(block, rounds = iterations)
+        return block_list
+ 
+    def decrypt_block(self, block, rounds = 1):
+        
+        L = block[0:6]
+        R = block[6:12]
+        key_man = KeyManager()
+        key_man.get_binary_key()
+
+        for i in range(rounds, 0, -1):
+            print ("I", i)
+            print("\n")
+            print("DECRYPT ROUND:", i)
+            subkey = key_man.get_binary_subkey(i - 1)
+            print("L: ", L, "R: ", R)
+            exp = self.expansion(R)
+            print("Exp: ", exp[:])
+            exp_subkey_xor = []
+            for i in range(0, 8):
+                val = exp[i] ^ subkey[i]
+                exp_subkey_xor.append(val)
+            print("Subkey", subkey[:] )
+            print("KEY XOR: ",exp_subkey_xor[:])
+
+            s1_in = exp_subkey_xor[0:4]
+            s2_in = exp_subkey_xor[4:8]
+
+            s1_out = self.s1_lookup(s1_in)
+            s2_out = self.s2_lookup(s2_in)
+            s_out = s1_out + s2_out
+
+            print("S1_IN:", s1_in, "S1_OUT", s1_out)
+            print("S2_IN", s2_in, "S2_OUT", s2_out)
+            print("S_OUT", s_out)
+            new_r = []
+            for i in range(0, 6):
+                val = s_out[i] ^ L[i]
+                new_r.append(val)
+
+            new_l = R
+            print(new_l, new_r)
+            L = R
+            R = new_r
+
+        new_block = R + L
+        print("FINAL", new_block)
+        return new_block
+
 
     def expansion(self, block):
         expansion_temp = c_bool * 8
@@ -88,8 +179,7 @@ class SimpleDES:
         return expansion
 
     def s1_lookup(self, s1_in):
-        index = 1 * s1_in[0] + 2 * s1_in[1] + 4 * s1_in[2] + 8 * s1_in[3]
-       
+        index = 8 * s1_in[0] + 4 * s1_in[1] + 2 * s1_in[2] + 1 * s1_in[3]
         s1 = [
         [True, False, True],
         [False, True, False],
@@ -108,10 +198,12 @@ class SimpleDES:
         [True, False, True],
         [False, True, True]
         ]
-        return s1[index]
+
+        val = s1[index]
+        return val
     
     def s2_lookup(self, s2_in):
-        index = 1 * s2_in[0] + 2 * s2_in[1] + 4 * s2_in[2] + 8 * s2_in[3]
+        index = 8 * s2_in[0] + 4 * s2_in[1] + 2 * s2_in[2] + 1 * s2_in[3]
 
         s2 = [
         [True, False, False],
@@ -136,4 +228,6 @@ class SimpleDES:
 
 if __name__ == '__main__':
     DES = SimpleDES()
+    
+    
     DES.encrypt_file()
